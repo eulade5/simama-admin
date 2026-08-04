@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Simama FC — Stand Up. Play On.</title>
+<meta name="description" content="Simama FC is a football club for kids who once slept on Kigali's streets. Today they play. Tomorrow, a team like this in every district in Rwanda." />
+
+<!-- ============================================================
+     SIMAMA FC  —  public website
+     Content (players, news, gallery, fundraising) loads live from
+     Supabase and is managed from admin.html. See README.md for setup.
+     Real donations: search for  >>> GO LIVE  to wire a payment link.
+     ============================================================ -->
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Manrope:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+
+<style>
+  :root{
+    --pitch:#0A3B2A;        /* deep pitch green - ground */
+    --pitch-2:#0D2A20;      /* darker green */
+    --grass:#17925A;        /* living green - growth */
+    --grass-soft:#1FB56C;
+    --sun:#FFB038;          /* sunrise amber - the signature */
+    --sun-deep:#F58A28;     /* warm orange edge */
+    --bone:#F6F2E7;         /* light section bg */
+    --bone-2:#EDE7D6;
+    --ink:#0A1712;          /* near-black text on light */
+    --ink-soft:#3C4A43;
+    --chalk:#F4FBF6;        /* text on dark */
+    --chalk-dim:#AEC9BB;
+    --line:rgba(255,255,255,.14);
+    --line-dark:rgba(10,23,18,.12);
+    --maxw:1200px;
+    --pad:clamp(20px,5vw,64px);
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+  body{
+    font-family:'Manrope',system-ui,sans-serif;
+    background:var(--pitch);
+    color:var(--ink);
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  img{max-width:100%;display:block}
+  a{color:inherit;text-decoration:none}
+  ::selection{background:var(--sun);color:var(--ink)}
+
+  /* ---------- shared type ---------- */
+  .display{font-family:'Anton',sans-serif;font-weight:400;text-transform:uppercase;line-height:.92;letter-spacing:.01em}
+  .mono{font-family:'Space Mono',monospace}
+  .eyebrow{
+    font-size:.74rem;font-weight:700;letter-spacing:.28em;text-transform:uppercase;
+    display:inline-flex;align-items:center;gap:.6em;
+  }
+  .eyebrow::before{content:"";width:26px;height:2px;background:var(--sun);display:inline-block}
+
+  .wrap{max-width:var(--maxw);margin:0 auto;padding-left:var(--pad);padding-right:var(--pad)}
+  section{padding-block:clamp(72px,10vw,130px)}
+
+  .btn{
+    display:inline-flex;align-items:center;gap:.6em;
+    font-weight:800;font-size:.95rem;letter-spacing:.01em;
+    padding:.95em 1.6em;border-radius:999px;border:2px solid transparent;
+    cursor:pointer;transition:transform .18s ease, background .18s ease, color .18s ease, box-shadow .18s ease;
+    line-height:1;white-space:nowrap;
+  }
+  .btn:hover{transform:translateY(-2px)}
+  .btn-sun{background:var(--sun);color:var(--ink);box-shadow:0 10px 30px -8px rgba(255,176,56,.6)}
+  .btn-sun:hover{background:var(--sun-deep)}
+  .btn-ghost{background:transparent;color:var(--chalk);border-color:var(--line)}
+  .btn-ghost:hover{border-color:var(--sun);color:var(--sun)}
+  .btn-ink{background:var(--ink);color:var(--chalk)}
+  .btn-ink:hover{background:var(--pitch)}
+  .btn .arrow{transition:transform .2s ease}
+  .btn:hover .arrow{transform:translateX(3px)}
+
+  /* ================= NAV ================= */
+  header.nav{position:sticky;top:0;z-index:60;background:rgba(10,42,32,.86);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+  .nav-inner{display:flex;align-items:center;justify-content:space-between;height:72px}
+  .brand{display:flex;align-items:center;gap:.65rem;color:var(--chalk)}
+  .crest{width:34px;height:34px;flex:none}
+  .brand-name{font-family:'Anton',sans-serif;font-size:1.35rem;letter-spacing:.04em;text-transform:uppercase}
+  .brand-name b{color:var(--sun);font-weight:400}
+  nav.links{display:flex;align-items:center;gap:2rem}
+  nav.links a{color:var(--chalk-dim);font-weight:600;font-size:.92rem;transition:color .15s}
+  nav.links a:hover{color:var(--chalk)}
+  .nav-cta{display:flex;align-items:center;gap:1rem}
+  .burger{display:none;background:none;border:0;color:var(--chalk);cursor:pointer}
+  @media(max-width:900px){
+    nav.links{position:fixed;inset:72px 0 auto 0;flex-direction:column;gap:0;background:var(--pitch-2);
+      border-bottom:1px solid var(--line);padding:.5rem var(--pad) 1.5rem;transform:translateY(-120%);
+      transition:transform .35s cubic-bezier(.4,0,.2,1);align-items:stretch}
+    nav.links.open{transform:translateY(0)}
+    nav.links a{padding:.9rem 0;border-bottom:1px solid var(--line);font-size:1.05rem}
+    .nav-cta .btn-desktop{display:none}
+    .burger{display:block}
+  }
+
+  /* ================= HERO ================= */
+  .hero{position:relative;color:var(--chalk);overflow:hidden;
+    background:
+      radial-gradient(120% 90% at 85% -10%, rgba(255,176,56,.22), transparent 55%),
+      radial-gradient(90% 80% at 10% 110%, rgba(23,146,90,.35), transparent 60%),
+      linear-gradient(180deg,var(--pitch) 0%, var(--pitch-2) 100%);
+  }
+  .hero .wrap{position:relative;z-index:2;padding-block:clamp(64px,11vw,130px)}
+  /* faint pitch lines */
+  .pitch-lines{position:absolute;inset:0;z-index:1;opacity:.5;pointer-events:none}
+  .kit-number{position:absolute;right:-4%;top:-6%;font-family:'Anton',sans-serif;font-size:min(52vw,720px);
+    line-height:1;color:rgba(255,255,255,.03);z-index:1;pointer-events:none;user-select:none}
+  .hero-eyebrow{color:var(--sun)}
+  h1.hero-title{font-family:'Anton',sans-serif;text-transform:uppercase;
+    font-size:clamp(3.6rem,15vw,11rem);line-height:.86;letter-spacing:.005em;margin:.28em 0 .1em}
+  h1.hero-title .on{color:var(--sun);-webkit-text-stroke:0}
+  .hero-lead{max-width:44ch;font-size:clamp(1.05rem,2.2vw,1.32rem);color:var(--chalk-dim);line-height:1.5;margin-top:.4rem}
+  .hero-lead b{color:var(--chalk);font-weight:700}
+  .hero-cta{display:flex;flex-wrap:wrap;gap:1rem;margin-top:2.2rem}
+
+  /* ================= SCOREBOARD STATS ================= */
+  .scoreboard{background:var(--ink);color:var(--chalk);border-top:3px solid var(--sun)}
+  .scoreboard .wrap{padding-block:clamp(28px,5vw,44px)}
+  .score-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line)}
+  .score-cell{background:var(--ink);padding:1.4rem clamp(.8rem,2vw,1.6rem);text-align:center}
+  .score-num{font-family:'Space Mono',monospace;font-weight:700;font-size:clamp(2rem,5vw,3.2rem);color:var(--sun);line-height:1}
+  .score-label{font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:var(--chalk-dim);margin-top:.55rem;font-weight:600}
+  @media(max-width:640px){.score-grid{grid-template-columns:repeat(2,1fr)}}
+
+  /* ================= STORY ================= */
+  .story{background:var(--bone);color:var(--ink)}
+  .story-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:clamp(2rem,5vw,4.5rem);align-items:center}
+  @media(max-width:860px){.story-grid{grid-template-columns:1fr;gap:2.2rem}}
+  .story h2{font-size:clamp(2.2rem,5.5vw,3.6rem);margin:.5rem 0 1.2rem}
+  .story h2 em{font-style:normal;color:var(--grass)}
+  .prose p{color:var(--ink-soft);font-size:1.08rem;line-height:1.65;margin-bottom:1.1rem;max-width:52ch}
+  .prose p b{color:var(--ink)}
+  .story-photo{position:relative;border-radius:20px;overflow:hidden;aspect-ratio:4/5;box-shadow:0 40px 80px -40px rgba(10,42,32,.5)}
+  .quote-chip{position:absolute;left:1.2rem;bottom:1.2rem;right:1.2rem;background:rgba(10,23,18,.82);
+    backdrop-filter:blur(6px);color:var(--chalk);padding:1rem 1.2rem;border-radius:14px;border-left:4px solid var(--sun)}
+  .quote-chip p{font-size:1rem;line-height:1.4;font-weight:600}
+  .quote-chip span{display:block;margin-top:.5rem;font-size:.78rem;letter-spacing:.1em;text-transform:uppercase;color:var(--sun)}
+
+  /* photo placeholder look (swap with real <img>) */
+  .ph{width:100%;height:100%;position:relative;display:grid;place-items:center;color:var(--chalk);
+    background:linear-gradient(135deg,var(--grass),var(--pitch));overflow:hidden}
+  .ph[data-tint="sun"]{background:linear-gradient(135deg,var(--sun),var(--sun-deep))}
+  .ph[data-tint="ink"]{background:linear-gradient(150deg,var(--pitch),var(--ink))}
+  .ph .ball{width:48px;height:48px;opacity:.55}
+  .ph::after{content:attr(data-swap);position:absolute;bottom:8px;left:0;right:0;text-align:center;
+    font-size:.62rem;letter-spacing:.16em;text-transform:uppercase;opacity:.55;font-weight:700}
+
+  /* ================= VISION / DISTRICT MAP ================= */
+  .vision{background:var(--pitch);color:var(--chalk);position:relative;overflow:hidden}
+  .vision::before{content:"";position:absolute;inset:0;
+    background:radial-gradient(80% 60% at 70% 30%,rgba(255,176,56,.14),transparent 60%);pointer-events:none}
+  .vision .wrap{position:relative}
+  .vision-head{max-width:60ch;margin-bottom:3rem}
+  .vision h2{font-size:clamp(2.2rem,5.5vw,3.8rem);margin:.7rem 0 1rem}
+  .vision h2 span{color:var(--sun)}
+  .vision-head p{color:var(--chalk-dim);font-size:1.1rem;line-height:1.6}
+  .constellation{position:relative;border:1px solid var(--line);border-radius:22px;padding:clamp(1.2rem,3vw,2.4rem);
+    background:linear-gradient(160deg,rgba(255,255,255,.04),rgba(255,255,255,0))}
+  .map-legend{display:flex;gap:1.6rem;flex-wrap:wrap;margin-top:1.6rem;font-size:.82rem;color:var(--chalk-dim)}
+  .map-legend .dot{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:.5rem;vertical-align:middle}
+  .map-legend .lit{background:var(--sun);box-shadow:0 0 12px var(--sun)}
+  .map-legend .next{background:transparent;border:2px solid var(--grass-soft)}
+
+  /* ================= SQUAD ================= */
+  .squad{background:var(--bone-2);color:var(--ink)}
+  .sec-head{display:flex;align-items:flex-end;justify-content:space-between;gap:1.5rem;flex-wrap:wrap;margin-bottom:2.6rem}
+  .sec-head h2{font-size:clamp(2rem,5vw,3.4rem);line-height:1}
+  .sec-head p{color:var(--ink-soft);max-width:42ch;font-size:1.02rem;line-height:1.55}
+  .squad-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1.2rem}
+  @media(max-width:900px){.squad-grid{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:480px){.squad-grid{grid-template-columns:repeat(2,1fr);gap:.8rem}}
+  .player{background:var(--pitch);border-radius:18px;overflow:hidden;color:var(--chalk);position:relative;
+    transition:transform .25s ease,box-shadow .25s ease}
+  .player:hover{transform:translateY(-6px);box-shadow:0 30px 50px -30px rgba(10,42,32,.7)}
+  .player .pic{aspect-ratio:1/1}
+  .player .num{position:absolute;top:.6rem;right:.9rem;font-family:'Anton',sans-serif;font-size:2rem;
+    color:var(--sun);line-height:1;text-shadow:0 2px 8px rgba(0,0,0,.4)}
+  .player .meta{padding:1rem 1.1rem 1.2rem}
+  .player .pname{font-family:'Anton',sans-serif;font-size:1.25rem;letter-spacing:.03em;text-transform:uppercase}
+  .player .ppos{font-size:.76rem;letter-spacing:.14em;text-transform:uppercase;color:var(--sun);margin-top:.25rem;font-weight:700}
+
+  /* ================= NEWS ================= */
+  .news{background:var(--bone);color:var(--ink)}
+  .news-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.6rem}
+  @media(max-width:860px){.news-grid{grid-template-columns:1fr}}
+  .card{background:#fff;border-radius:18px;overflow:hidden;border:1px solid var(--line-dark);
+    display:flex;flex-direction:column;transition:transform .22s ease,box-shadow .22s ease}
+  .card:hover{transform:translateY(-5px);box-shadow:0 30px 60px -34px rgba(10,42,32,.4)}
+  .card .pic{aspect-ratio:16/10}
+  .card .body{padding:1.3rem 1.4rem 1.5rem;display:flex;flex-direction:column;gap:.6rem;flex:1}
+  .card .date{font-family:'Space Mono',monospace;font-size:.76rem;letter-spacing:.08em;color:var(--grass);font-weight:700}
+  .card h3{font-size:1.22rem;line-height:1.25;font-weight:800}
+  .card p{color:var(--ink-soft);font-size:.96rem;line-height:1.55;flex:1}
+  .card .read{font-weight:800;color:var(--pitch);font-size:.9rem;display:inline-flex;align-items:center;gap:.4em}
+
+  /* ================= GALLERY ================= */
+  .gallery{background:var(--pitch-2);color:var(--chalk)}
+  .gal-grid{display:grid;grid-template-columns:repeat(4,1fr);grid-auto-rows:180px;gap:.8rem}
+  @media(max-width:900px){.gal-grid{grid-template-columns:repeat(2,1fr);grid-auto-rows:150px}}
+  .gal-item{border-radius:14px;overflow:hidden;cursor:pointer;position:relative}
+  .gal-item.big{grid-column:span 2;grid-row:span 2}
+  .gal-item .ph{transition:transform .4s ease}
+  .gal-item:hover .ph{transform:scale(1.06)}
+  .gal-item::before{content:"";position:absolute;inset:0;z-index:2;background:linear-gradient(0deg,rgba(10,23,18,.5),transparent 50%);
+    opacity:0;transition:opacity .25s}
+  .gal-item:hover::before{opacity:1}
+
+  /* lightbox */
+  .lightbox{position:fixed;inset:0;z-index:100;background:rgba(6,16,12,.94);display:none;place-items:center;padding:5vw}
+  .lightbox.open{display:grid}
+  .lightbox .lb-inner{max-width:900px;width:100%;aspect-ratio:16/10;border-radius:16px;overflow:hidden}
+  .lightbox .close{position:absolute;top:24px;right:28px;background:none;border:0;color:#fff;cursor:pointer}
+
+  /* ================= DONATE ================= */
+  .donate{background:linear-gradient(160deg,var(--ink),var(--pitch));color:var(--chalk);position:relative;overflow:hidden}
+  .donate::before{content:"";position:absolute;right:-6%;top:-10%;font-size:40vw}
+  .donate-grid{display:grid;grid-template-columns:1fr 1fr;gap:clamp(2rem,5vw,4rem);align-items:start}
+  @media(max-width:920px){.donate-grid{grid-template-columns:1fr;gap:2.5rem}}
+  .donate h2{font-size:clamp(2.2rem,6vw,4rem);margin:.6rem 0 1rem}
+  .donate h2 span{color:var(--sun)}
+  .donate-lead{color:var(--chalk-dim);font-size:1.08rem;line-height:1.6;max-width:44ch;margin-bottom:2rem}
+
+  .goal{background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:18px;padding:1.4rem 1.5rem;margin-bottom:1.6rem}
+  .goal-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:.9rem}
+  .goal-raised{font-family:'Space Mono',monospace;font-weight:700;font-size:1.5rem;color:var(--sun)}
+  .goal-of{font-size:.9rem;color:var(--chalk-dim)}
+  .bar{height:12px;border-radius:999px;background:rgba(255,255,255,.1);overflow:hidden}
+  .bar > i{display:block;height:100%;width:0;border-radius:999px;background:linear-gradient(90deg,var(--grass-soft),var(--sun));
+    transition:width 1.4s cubic-bezier(.2,.7,.2,1)}
+  .goal-sub{margin-top:.8rem;font-size:.85rem;color:var(--chalk-dim)}
+
+  .tiers{display:flex;flex-direction:column;gap:.8rem}
+  .tier{display:flex;align-items:center;gap:1rem;text-align:left;width:100%;
+    background:rgba(255,255,255,.04);border:1.5px solid var(--line);border-radius:14px;
+    padding:1rem 1.2rem;cursor:pointer;color:var(--chalk);transition:border-color .18s,background .18s,transform .18s}
+  .tier:hover{transform:translateX(3px);border-color:var(--sun)}
+  .tier.active{border-color:var(--sun);background:rgba(255,176,56,.1)}
+  .tier .amt{font-family:'Space Mono',monospace;font-weight:700;font-size:1.15rem;color:var(--sun);min-width:64px}
+  .tier .t-txt strong{display:block;font-size:1rem}
+  .tier .t-txt span{font-size:.85rem;color:var(--chalk-dim)}
+  .tier .check{margin-left:auto;width:20px;height:20px;border-radius:50%;border:2px solid var(--line);flex:none;position:relative}
+  .tier.active .check{border-color:var(--sun);background:var(--sun)}
+  .tier.active .check::after{content:"";position:absolute;inset:4px;border-radius:50%;background:var(--ink)}
+  .donate-action{margin-top:1.4rem;display:flex;flex-wrap:wrap;gap:.9rem;align-items:center}
+  .donate-note{font-size:.8rem;color:var(--chalk-dim);margin-top:1rem}
+
+  /* ================= INVOLVED ================= */
+  .involved{background:var(--bone);color:var(--ink)}
+  .inv-grid{display:grid;grid-template-columns:1fr 1fr;gap:clamp(2rem,5vw,4rem)}
+  @media(max-width:860px){.inv-grid{grid-template-columns:1fr;gap:2.4rem}}
+  .inv h2{font-size:clamp(2rem,5vw,3.2rem);margin:.6rem 0 1rem}
+  .ways{display:flex;flex-direction:column;gap:1rem;margin-top:1.4rem}
+  .way{display:flex;gap:1rem;align-items:flex-start}
+  .way .ic{width:42px;height:42px;border-radius:12px;background:var(--pitch);color:var(--sun);display:grid;place-items:center;flex:none}
+  .way strong{display:block;font-size:1.05rem}
+  .way span{color:var(--ink-soft);font-size:.95rem;line-height:1.5}
+  form.contact{background:#fff;border:1px solid var(--line-dark);border-radius:20px;padding:clamp(1.4rem,3vw,2rem)}
+  .field{margin-bottom:1rem}
+  .field label{display:block;font-size:.82rem;font-weight:700;letter-spacing:.04em;margin-bottom:.4rem;text-transform:uppercase;color:var(--ink-soft)}
+  .field input,.field textarea{width:100%;border:1.5px solid var(--line-dark);border-radius:12px;padding:.85rem 1rem;
+    font-family:inherit;font-size:1rem;color:var(--ink);background:var(--bone);transition:border-color .15s,background .15s}
+  .field input:focus,.field textarea:focus{outline:none;border-color:var(--grass);background:#fff}
+  .field textarea{resize:vertical;min-height:110px}
+  .form-msg{font-size:.9rem;color:var(--grass);font-weight:700;margin-top:.4rem;min-height:1.2em}
+
+  /* ================= FOOTER ================= */
+  footer{background:var(--pitch-2);color:var(--chalk-dim);border-top:1px solid var(--line)}
+  .foot-grid{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:2.5rem;padding-block:clamp(48px,7vw,72px)}
+  @media(max-width:760px){.foot-grid{grid-template-columns:1fr;gap:2rem}}
+  .foot-brand .brand-name{font-size:1.6rem}
+  .foot-brand p{margin-top:1rem;max-width:36ch;line-height:1.6;font-size:.95rem}
+  .foot-col h4{color:var(--chalk);font-size:.8rem;letter-spacing:.16em;text-transform:uppercase;margin-bottom:1rem}
+  .foot-col a{display:block;padding:.35rem 0;font-size:.95rem;transition:color .15s}
+  .foot-col a:hover{color:var(--sun)}
+  .foot-bottom{border-top:1px solid var(--line);padding-block:1.4rem;display:flex;justify-content:space-between;
+    flex-wrap:wrap;gap:.6rem;font-size:.82rem}
+  .socials{display:flex;gap:.9rem}
+  .socials a{width:36px;height:36px;border:1px solid var(--line);border-radius:50%;display:grid;place-items:center;color:var(--chalk);transition:.15s}
+  .socials a:hover{background:var(--sun);color:var(--ink);border-color:var(--sun)}
+
+  /* reveal on scroll */
+  .reveal{opacity:0;transform:translateY(24px);transition:opacity .7s ease, transform .7s ease}
+  .reveal.in{opacity:1;transform:none}
+  @media (prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}}
+</style>
+</head>
+<body>
+
+<!-- ================= NAV ================= -->
+<header class="nav">
+  <div class="wrap nav-inner">
+    <a class="brand" href="#top" aria-label="Simama FC home">
+      <svg class="crest" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+        <path d="M20 2l15 6v9c0 9-6.4 16.4-15 21C11.4 33.4 5 26 5 17V8l15-6z" fill="#FFB038"/>
+        <path d="M20 2l15 6v9c0 9-6.4 16.4-15 21C11.4 33.4 5 26 5 17V8l15-6z" stroke="#0A3B2A" stroke-width="1.5"/>
+        <circle cx="20" cy="17" r="7" fill="#0A3B2A"/>
+        <path d="M20 12l1.6 3.3 3.6.3-2.7 2.4.8 3.5L20 20.1l-3.3 1.9.8-3.5-2.7-2.4 3.6-.3L20 12z" fill="#FFB038"/>
+      </svg>
+      <span class="brand-name">SIMAMA<b> FC</b></span>
+    </a>
+
+    <nav class="links" id="menu">
+      <a href="#story">Story</a>
+      <a href="#vision">The Vision</a>
+      <a href="#squad">The Squad</a>
+      <a href="#news">News</a>
+      <a href="#gallery">Gallery</a>
+      <a href="#involved">Get Involved</a>
+    </nav>
+
+    <div class="nav-cta">
+      <a href="#donate" class="btn btn-sun btn-desktop">Fund the squad</a>
+      <button class="burger" id="burger" aria-label="Menu" aria-expanded="false">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- ================= HERO ================= -->
+<section class="hero" id="top">
+  <span class="kit-number" aria-hidden="true">10</span>
+  <svg class="pitch-lines" viewBox="0 0 1200 700" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <g stroke="rgba(255,255,255,.08)" stroke-width="1.5" fill="none">
+      <line x1="600" y1="0" x2="600" y2="700"/>
+      <circle cx="600" cy="350" r="90"/>
+      <rect x="0" y="230" width="120" height="240"/>
+      <rect x="1080" y="230" width="120" height="240"/>
+      <circle cx="600" cy="350" r="3" fill="rgba(255,255,255,.2)"/>
+    </g>
+  </svg>
+  <div class="wrap">
+    <span class="eyebrow hero-eyebrow">Simama Football Club · Kigali, Rwanda</span>
+    <h1 class="hero-title">Stand up.<br><span class="on">Play on.</span></h1>
+    <p class="hero-lead">A football club for kids who used to sleep on Kigali's streets. Today they train, they play, they <b>belong</b>. Tomorrow — a team like this in every district in Rwanda.</p>
+    <div class="hero-cta">
+      <a href="#donate" class="btn btn-sun">Fund the squad <span class="arrow">→</span></a>
+      <a href="#story" class="btn btn-ghost">See our story</a>
+    </div>
+  </div>
+</section>
+
+<!-- ================= SCOREBOARD ================= -->
+<section class="scoreboard" style="padding-block:0">
+  <div class="wrap">
+    <div class="score-grid">
+      <div class="score-cell"><div class="score-num" data-count="24">0</div><div class="score-label">Kids on the roster</div></div>
+      <div class="score-cell"><div class="score-num" data-count="3">0</div><div class="score-label">Seasons played</div></div>
+      <div class="score-cell"><div class="score-num" data-count="1">0</div><div class="score-label">District today</div></div>
+      <div class="score-cell"><div class="score-num" data-count="30">0</div><div class="score-label">Districts — the goal</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= STORY ================= -->
+<section class="story" id="story">
+  <div class="wrap story-grid">
+    <div class="reveal">
+      <span class="eyebrow" style="color:var(--grass)">Why Simama exists</span>
+      <h2 class="display">Not a cause.<br>A <em>squad.</em></h2>
+      <div class="prose">
+        <p>Every kid on this team once had somewhere else to be at kickoff — a street corner, a market, a place no child should have to survive. <b>Simama means "stand up."</b> It's what they do the moment they pull on the shirt.</p>
+        <p>We don't hand out pity. We hand out boots, a position, a coach who shows up, a warm meal after training, and a room full of people who expect them on Saturday. Football gives shape to a week. Belonging gives shape to a life.</p>
+        <p>The pitch is where the turnaround starts — school support, mentorship and a path forward follow from it. <b>One team proved it works.</b> Now we're building the rest.</p>
+      </div>
+    </div>
+    <div class="story-photo reveal">
+      <!-- >>> SWAP: replace this .ph block with <img src="team-photo.jpg" alt="Simama FC squad"> -->
+      <div class="ph" data-tint="ink" data-swap="Swap in your team photo">
+        <svg class="ball" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 6l3.5 2.5L14 12h-4L8.5 8.5 12 6z"/><path d="M8.5 8.5L5 10m11-1.5L19 10M10 12l-1.5 4M14 12l1.5 4"/></svg>
+      </div>
+      <div class="quote-chip">
+        <p>"On the street I was nobody. On the pitch I wear number 9."</p>
+        <span>— A Simama striker, age 14</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= VISION ================= -->
+<section class="vision" id="vision">
+  <div class="wrap">
+    <div class="vision-head reveal">
+      <span class="eyebrow" style="color:var(--sun)">The mission</span>
+      <h2 class="display">One pitch lit up.<br><span>29 still to go.</span></h2>
+      <p>Rwanda has 30 districts. Right now, one of them has a Simama team. Our plan is simple and stubborn: light up every district on the map, one team, one coach, one roster of kids at a time — until no district is dark.</p>
+    </div>
+
+    <div class="constellation reveal">
+      <!-- District constellation: node "kigali" is lit (current). Others are the roadmap. -->
+      <svg viewBox="0 0 900 460" width="100%" role="img" aria-label="Map of districts across Rwanda: one team active today, the rest planned.">
+        <defs>
+          <filter id="glow" x="-60%" y="-60%" width="220%" height="220%">
+            <feGaussianBlur stdDeviation="7" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+        <!-- connecting lines -->
+        <g stroke="rgba(31,181,108,.35)" stroke-width="1.4">
+          <line x1="450" y1="240" x2="300" y2="150"/><line x1="450" y1="240" x2="600" y2="140"/>
+          <line x1="450" y1="240" x2="250" y2="300"/><line x1="450" y1="240" x2="640" y2="300"/>
+          <line x1="450" y1="240" x2="430" y2="120"/><line x1="450" y1="240" x2="500" y2="360"/>
+          <line x1="450" y1="240" x2="200" y2="200"/><line x1="450" y1="240" x2="700" y2="220"/>
+          <line x1="300" y1="150" x2="430" y2="120"/><line x1="600" y1="140" x2="700" y2="220"/>
+          <line x1="250" y1="300" x2="500" y2="360"/><line x1="640" y1="300" x2="500" y2="360"/>
+        </g>
+        <!-- planned district nodes -->
+        <g fill="none" stroke="#1FB56C" stroke-width="2">
+          <circle cx="300" cy="150" r="8"/><circle cx="600" cy="140" r="8"/><circle cx="250" cy="300" r="8"/>
+          <circle cx="640" cy="300" r="8"/><circle cx="430" cy="120" r="8"/><circle cx="500" cy="360" r="8"/>
+          <circle cx="200" cy="200" r="8"/><circle cx="700" cy="220" r="8"/><circle cx="360" cy="230" r="6"/>
+          <circle cx="560" cy="240" r="6"/><circle cx="330" cy="360" r="6"/><circle cx="620" cy="380" r="6"/>
+          <circle cx="750" cy="150" r="6"/><circle cx="170" cy="120" r="6"/><circle cx="180" cy="360" r="6"/>
+        </g>
+        <!-- the one lit district (Kigali / today) -->
+        <g filter="url(#glow)">
+          <circle cx="450" cy="240" r="16" fill="#FFB038"/>
+        </g>
+        <circle cx="450" cy="240" r="26" fill="none" stroke="#FFB038" stroke-width="1.5" opacity=".5">
+          <animate attributeName="r" values="18;34;18" dur="3s" repeatCount="indefinite"/>
+          <animate attributeName="opacity" values=".6;0;.6" dur="3s" repeatCount="indefinite"/>
+        </circle>
+        <text x="450" y="285" text-anchor="middle" fill="#FFB038" font-family="Space Mono, monospace" font-size="15" font-weight="700">KIGALI · LIVE</text>
+      </svg>
+      <div class="map-legend">
+        <span><i class="dot lit"></i>Team playing today</span>
+        <span><i class="dot next"></i>Next districts on the map</span>
+        <span class="mono" style="color:var(--sun)">1 / 30 lit</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= SQUAD ================= -->
+<section class="squad" id="squad">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div>
+        <span class="eyebrow" style="color:var(--grass)">The starting XI</span>
+        <h2 class="display" style="margin-top:.5rem">Meet the squad</h2>
+      </div>
+      <p>Every player has a name, a number, and a story that starts long before the whistle. Here are a few of them.</p>
+    </div>
+    <div class="squad-grid" id="squadGrid"><!-- players injected by JS --></div>
+  </div>
+</section>
+
+<!-- ================= NEWS ================= -->
+<section class="news" id="news">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div>
+        <span class="eyebrow" style="color:var(--grass)">From the touchline</span>
+        <h2 class="display" style="margin-top:.5rem">Latest news</h2>
+      </div>
+      <p>Match reports, milestones and moments from the club. <span class="mono" style="color:var(--grass)">/* editable feed */</span></p>
+    </div>
+    <div class="news-grid" id="newsGrid"><!-- news injected by JS --></div>
+  </div>
+</section>
+
+<!-- ================= GALLERY ================= -->
+<section class="gallery" id="gallery">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div>
+        <span class="eyebrow" style="color:var(--sun)">Matchday & beyond</span>
+        <h2 class="display" style="margin-top:.5rem;color:var(--chalk)">Gallery</h2>
+      </div>
+      <p style="color:var(--chalk-dim)">Tap any photo to open it. Swap these tiles for real shots from training and matchdays.</p>
+    </div>
+    <div class="gal-grid" id="galGrid"><!-- gallery injected by JS --></div>
+  </div>
+</section>
+
+<!-- ================= DONATE ================= -->
+<section class="donate" id="donate">
+  <div class="wrap donate-grid">
+    <div class="reveal">
+      <span class="eyebrow" style="color:var(--sun)">Fund the mission</span>
+      <h2 class="display">Put a kid <span>on the pitch.</span></h2>
+      <p class="donate-lead">Every franc goes to boots, kit, meals, transport, coaching and the next new team. Pick what you want to fund — or give any amount.</p>
+
+      <div class="goal">
+        <div class="goal-top">
+          <div class="goal-raised"><span id="raised">$0</span></div>
+          <div class="goal-of">of <b>$40,000</b> season goal</div>
+        </div>
+        <div class="bar"><i id="bar"></i></div>
+        <div class="goal-sub"><span id="pct">0%</span> funded · seeds our next district team</div>
+      </div>
+    </div>
+
+    <div class="reveal">
+      <div class="tiers" id="tiers">
+        <button class="tier" data-amt="25"><span class="amt">$25</span><span class="t-txt"><strong>A pair of boots</strong><span>Gets one player match-ready.</span></span><span class="check"></span></button>
+        <button class="tier active" data-amt="60"><span class="amt">$60</span><span class="t-txt"><strong>A month on the pitch</strong><span>Meals, transport & training for one kid.</span></span><span class="check"></span></button>
+        <button class="tier" data-amt="150"><span class="amt">$150</span><span class="t-txt"><strong>A full kit, head to toe</strong><span>Jersey, shorts, socks and boots.</span></span><span class="check"></span></button>
+        <button class="tier" data-amt="2000"><span class="amt">$2K</span><span class="t-txt"><strong>Adopt a district</strong><span>Seeds a whole new team on the map.</span></span><span class="check"></span></button>
+      </div>
+      <div class="donate-action">
+        <!-- >>> GO LIVE: point this at your payment link (IremboPay / Flutterwave / MTN MoMo / Stripe) -->
+        <a href="#" id="donateBtn" class="btn btn-sun" style="font-size:1.05rem;padding:1.05em 1.9em">Donate $60 →</a>
+        <span class="mono" style="color:var(--chalk-dim);font-size:.82rem">Secure · every amount counts</span>
+      </div>
+      <p class="donate-note">Prefer mobile money or a bank transfer? <a href="#involved" style="color:var(--sun);font-weight:700">Get in touch</a> and we'll send details.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= INVOLVED ================= -->
+<section class="involved inv" id="involved">
+  <div class="wrap inv-grid">
+    <div class="reveal">
+      <span class="eyebrow" style="color:var(--grass)">More than money</span>
+      <h2 class="display">Get involved</h2>
+      <p style="color:var(--ink-soft);font-size:1.05rem;line-height:1.6;max-width:44ch">Funding matters — but so do boots, coaches, kit sponsors and partners who want a Simama team in their district. Reach out.</p>
+      <div class="ways">
+        <div class="way"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3 6 6 .9-4.5 4.3L18 20l-6-3.2L6 20l1.5-6.8L3 8.9 9 8l3-6z"/></svg></span><div><strong>Sponsor a district</strong><span>Back the launch of a whole new team where you live.</span></div></div>
+        <div class="way"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg></span><div><strong>Coach or mentor</strong><span>Give a few hours a week on the pitch or off it.</span></div></div>
+        <div class="way"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 12v7a2 2 0 01-2 2H6a2 2 0 01-2-2v-7"/><path d="M2 7h20v5H2zM12 22V7M12 7S9 2 6.5 3.5 8 7 12 7zM12 7s3-5 5.5-3.5S16 7 12 7z"/></svg></span><div><strong>Donate gear</strong><span>Boots, balls, kit — new or gently used, all welcome.</span></div></div>
+      </div>
+    </div>
+
+    <form class="contact reveal" id="contactForm" novalidate>
+      <div class="field"><label for="n">Name</label><input id="n" type="text" placeholder="Your name" required></div>
+      <div class="field"><label for="e">Email</label><input id="e" type="email" placeholder="you@email.com" required></div>
+      <div class="field"><label for="m">How do you want to help?</label><textarea id="m" placeholder="Sponsor a district, coach, donate gear, partner up…"></textarea></div>
+      <button type="submit" class="btn btn-ink" style="width:100%;justify-content:center">Send message</button>
+      <p class="form-msg" id="formMsg"></p>
+    </form>
+  </div>
+</section>
+
+<!-- ================= FOOTER ================= -->
+<footer>
+  <div class="wrap foot-grid">
+    <div class="foot-brand">
+      <span class="brand-name">SIMAMA<b style="color:var(--sun);font-weight:400"> FC</b></span>
+      <p>A football club for kids who deserve a team. Building toward one in every district in Rwanda.</p>
+    </div>
+    <div class="foot-col">
+      <h4>Explore</h4>
+      <a href="#story">Our story</a><a href="#vision">The vision</a><a href="#squad">The squad</a><a href="#news">News</a>
+    </div>
+    <div class="foot-col">
+      <h4>Support</h4>
+      <a href="#donate">Donate</a><a href="#involved">Sponsor a district</a><a href="#involved">Volunteer</a><a href="#involved">Contact</a>
+    </div>
+  </div>
+  <div class="wrap foot-bottom">
+    <span>© <span id="yr"></span> Simama FC · Kigali, Rwanda</span>
+    <div class="socials">
+      <a href="#" aria-label="Instagram"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg></a>
+      <a href="#" aria-label="X"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M18.9 2H22l-7.6 8.7L23.3 22h-7l-5.5-7.2L4.5 22H1.4l8.1-9.3L.9 2h7.2l5 6.6L18.9 2z"/></svg></a>
+      <a href="#" aria-label="Facebook"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M14 9h3V6h-3c-2.2 0-4 1.8-4 4v2H7v3h3v7h3v-7h3l1-3h-4v-2c0-.6.4-1 1-1z"/></svg></a>
+    </div>
+  </div>
+</footer>
+
+<!-- lightbox -->
+<div class="lightbox" id="lightbox">
+  <button class="close" id="lbClose" aria-label="Close"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  <div class="lb-inner" id="lbInner"><div class="ph" data-tint="ink" data-swap="Full photo"></div></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script>
+/* =====================================================================
+   SIMAMA FC — live site (data from Supabase)
+   Players, news, gallery and fundraising numbers all load from the
+   database and are managed from admin.html. No code edits needed to
+   add content — that's what the admin panel is for.
+   ===================================================================== */
+
+const { SUPABASE_URL, SUPABASE_ANON_KEY } = window.SIMAMA_CONFIG || {};
+const db = (window.supabase && SUPABASE_URL)
+  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+  : null;
+
+const ballSVG = '<svg class="ball" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="12" cy="12" r="10"/><path d="M12 6l3.5 2.5L14 12h-4L8.5 8.5 12 6z"/></svg>';
+const TINTS = ['grass','sun','ink'];
+const tint = i => TINTS[i % TINTS.length];
+const esc = s => (s??'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmt = d => new Date(d).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}).toUpperCase();
+
+// fundraising numbers (updated once settings load)
+let GOAL = 40000, RAISED = 18600;
+
+// image-or-placeholder helper
+const pic = (url, cls, tnt, label) => url
+  ? `<img class="${cls}" src="${esc(url)}" alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover">`
+  : `<div class="${cls} ph" data-tint="${tnt}" data-swap="${label}">${cls.includes('pic')?ballSVG:''}</div>`;
+
+// ---------- SQUAD ----------
+async function loadSquad(){
+  const grid = document.getElementById('squadGrid');
+  let rows = [];
+  if(db){
+    const { data } = await db.from('players').select('*').order('sort_order').order('number');
+    rows = data || [];
+  }
+  if(!rows.length){
+    grid.innerHTML = `<p style="grid-column:1/-1;color:var(--ink-soft)">No players yet — add them from the admin panel.</p>`;
+    return;
+  }
+  grid.innerHTML = rows.map((p,i) => `
+    <article class="player reveal in">
+      <div style="aspect-ratio:1/1">${pic(p.photo_url,'pic',tint(i),'Player photo')}</div>
+      <span class="num">${p.number ?? ''}</span>
+      <div class="meta"><div class="pname">${esc(p.name)}</div><div class="ppos">${esc(p.position||'')}</div></div>
+    </article>`).join('');
+}
+
+// ---------- NEWS ----------
+async function loadNews(){
+  const grid = document.getElementById('newsGrid');
+  let rows = [];
+  if(db){
+    const { data } = await db.from('articles').select('*').order('published_at',{ascending:false}).limit(6);
+    rows = data || [];
+  }
+  if(!rows.length){
+    grid.innerHTML = `<p style="color:var(--ink-soft)">No news yet — post your first update from the admin panel.</p>`;
+    return;
+  }
+  grid.innerHTML = rows.map((n,i) => `
+    <article class="card reveal in">
+      <div style="aspect-ratio:16/10">${pic(n.cover_url,'pic',tint(i),'Article photo')}</div>
+      <div class="body">
+        <span class="date">${fmt(n.published_at)}</span>
+        <h3>${esc(n.title)}</h3>
+        <p>${esc(n.excerpt||'')}</p>
+      </div>
+    </article>`).join('');
+}
+
+// ---------- GALLERY ----------
+async function loadGallery(){
+  const grid = document.getElementById('galGrid');
+  let rows = [];
+  if(db){
+    const { data } = await db.from('gallery').select('*').order('sort_order').order('created_at',{ascending:false});
+    rows = data || [];
+  }
+  if(!rows.length){
+    grid.innerHTML = `<p style="grid-column:1/-1;color:var(--chalk-dim)">Photos coming soon — upload them from the admin panel.</p>`;
+    return;
+  }
+  grid.innerHTML = rows.map((g,i) => `
+    <div class="gal-item ${g.featured?'big':''}" data-full="${esc(g.image_url)}" data-cap="${esc(g.caption||'')}">
+      ${pic(g.image_url,'',tint(i),'Photo')}
+    </div>`).join('');
+}
+
+// lightbox
+const lb = document.getElementById('lightbox');
+const lbInner = document.getElementById('lbInner');
+document.getElementById('galGrid').addEventListener('click', e => {
+  const item = e.target.closest('.gal-item');
+  if(!item) return;
+  const full = item.dataset.full;
+  lbInner.innerHTML = full
+    ? `<img src="${full}" alt="${item.dataset.cap||''}" style="width:100%;height:100%;object-fit:cover">`
+    : `<div class="ph" data-tint="ink" data-swap="Full photo"></div>`;
+  lb.classList.add('open');
+});
+document.getElementById('lbClose').addEventListener('click', ()=>lb.classList.remove('open'));
+lb.addEventListener('click', e => { if(e.target===lb) lb.classList.remove('open'); });
+document.addEventListener('keydown', e => { if(e.key==='Escape') lb.classList.remove('open'); });
+
+// mobile menu
+const burger = document.getElementById('burger'), menu = document.getElementById('menu');
+burger.addEventListener('click', ()=>{
+  const open = menu.classList.toggle('open');
+  burger.setAttribute('aria-expanded', open);
+});
+menu.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>menu.classList.remove('open')));
+
+// donation tiers
+let amount = 60;
+const donateBtn = document.getElementById('donateBtn');
+document.querySelectorAll('.tier').forEach(t=>{
+  t.addEventListener('click', ()=>{
+    document.querySelectorAll('.tier').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    amount = +t.dataset.amt;
+    donateBtn.textContent = `Donate $${amount.toLocaleString()} →`;
+    // >>> GO LIVE: donateBtn.href = `https://your-payment-link?amount=${amount}`;
+  });
+});
+
+// reveal on scroll + count-up + goal bar (fire when in view)
+const io = new IntersectionObserver((entries)=>{
+  entries.forEach(en=>{
+    if(!en.isIntersecting) return;
+    en.target.classList.add('in');
+    io.unobserve(en.target);
+    // scoreboard count-up
+    if(en.target.classList.contains('scoreboard')){
+      en.target.querySelectorAll('[data-count]').forEach(el=>{
+        const end = +el.dataset.count; let cur = 0;
+        const step = Math.max(1, Math.round(end/34));
+        const t = setInterval(()=>{ cur+=step; if(cur>=end){cur=end;clearInterval(t);} el.textContent=cur; }, 24);
+      });
+    }
+    // goal bar fill
+    if(en.target.id==='donate'){
+      const pct = Math.min(100, Math.round(RAISED/GOAL*100));
+      document.getElementById('bar').style.width = pct+'%';
+      document.getElementById('raised').textContent = '$'+RAISED.toLocaleString();
+      document.getElementById('pct').textContent = pct+'%';
+    }
+  });
+},{threshold:.16});
+
+// ---------- SETTINGS (fundraising + scoreboard) ----------
+async function loadSettings(){
+  if(!db) return;
+  const { data } = await db.from('site_settings').select('*').eq('id',1).single();
+  if(!data) return;
+  GOAL   = Number(data.fundraise_goal)   || GOAL;
+  RAISED = Number(data.fundraise_raised) || RAISED;
+  // scoreboard values
+  const map = {
+    stat_players: data.stat_players, stat_seasons: data.stat_seasons,
+    stat_now: data.stat_districts_now, stat_goal: data.stat_districts_goal
+  };
+  const cells = document.querySelectorAll('.scoreboard [data-count]');
+  const vals = [data.stat_players, data.stat_seasons, data.stat_districts_now, data.stat_districts_goal];
+  cells.forEach((el,i)=>{ if(vals[i]!=null) el.dataset.count = vals[i]; });
+  // goal-of label + season text
+  const goalOf = document.querySelector('.goal-of');
+  if(goalOf) goalOf.innerHTML = `of <b>$${GOAL.toLocaleString()}</b> ${esc(data.season_label||'season goal')}`;
+}
+
+// boot: load settings first (so scoreboard/goal use live numbers), then content
+(async () => {
+  await loadSettings();
+  document.querySelectorAll('.reveal, .scoreboard, #donate').forEach(el=>io.observe(el));
+  loadSquad(); loadNews(); loadGallery();
+})();
+
+// contact form (front-end demo — wire to Supabase / Formspree / email to go live)
+document.getElementById('contactForm').addEventListener('submit', e=>{
+  e.preventDefault();
+  const msg = document.getElementById('formMsg');
+  const name = document.getElementById('n').value.trim();
+  const email = document.getElementById('e').value.trim();
+  if(!name || !email){ msg.style.color='#c0392b'; msg.textContent='Please add your name and email.'; return; }
+  msg.style.color='var(--grass)';
+  msg.textContent = `Thanks, ${name.split(' ')[0]} — we'll be in touch soon. ⚽`;
+  e.target.reset();
+});
+
+document.getElementById('yr').textContent = new Date().getFullYear();
+</script>
+</body>
+</html>
